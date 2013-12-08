@@ -21,7 +21,8 @@
  *
  ******************************************************************************/
 
-#include <stdint.h>
+//#include <stdint.h>
+#include <linux/types.h>
 
 /* define compiler specific symbols */
 #if defined ( __CC_ARM   )

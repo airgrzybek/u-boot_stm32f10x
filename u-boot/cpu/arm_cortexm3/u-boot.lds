@@ -26,78 +26,126 @@ ENTRY(_start)
 #define NVM_BASE	(CONFIG_MEM_NVM_BASE + CONFIG_MEM_NVM_UBOOT_OFF)
 #define NVM_LEN		(CONFIG_MEM_NVM_LEN - CONFIG_MEM_NVM_UBOOT_OFF)
 
+#define RAM_BUF_BASE    (CONFIG_MEM_RAM_BASE + CONFIG_MEM_RAM_LEN)
+#define MALLOC_BASE     (RAM_BUF_BASE + CONFIG_MEM_RAM_BUF_LEN)
+#define STACK_BASE      (MALLOC_BASE + CONFIG_MEM_MALLOC_LEN)
+
 MEMORY
 {
-	NVM (r):	ORIGIN = NVM_BASE, \
-			LENGTH = NVM_LEN
-	RAM (rw):	ORIGIN = CONFIG_MEM_RAM_BASE, \
-			LENGTH = CONFIG_MEM_RAM_LEN
-	RAM_BUF (r):	ORIGIN = ORIGIN(RAM) + LENGTH(RAM), \
-			LENGTH = CONFIG_MEM_RAM_BUF_LEN
-	MALLOC (r):	ORIGIN = ORIGIN(RAM_BUF) + LENGTH(RAM_BUF), \
-			LENGTH = CONFIG_MEM_MALLOC_LEN
-	STACK (r):	ORIGIN = ORIGIN(MALLOC) + LENGTH(MALLOC), \
-			LENGTH = CONFIG_MEM_STACK_LEN
+    FLASH (rx) : ORIGIN = 0x08000000, LENGTH = 512K
+    SRAM (rwx) : ORIGIN = 0x20000000, LENGTH = 32K
+    RAM_BUF (r): ORIGIN = 0x20008000, LENGTH = (22 * 1024)
+    MALLOC (r): ORIGIN =  0x2000D800, LENGTH = (8 * 1024)
+    STACK (r): ORIGIN = 0x2000F800, LENGTH = (2 * 1024)
 }
 
 SECTIONS
 {
-	.text :
-	{
-	    KEEP(*(.vectors))
-		*(.text)
-		*(.rodata*)
+    .text :
+    {
+        KEEP(*(.vectors))
 
-	} >NVM
+        *(.text .text.* .gnu.linkonce.t.*)
+        *(.rodata .rodata.* .gnu.linkonce.r.*)
 
-	.data :
-	{
-		_data_start = .;
-		_data_lma_start = LOADADDR(.data);
-		*(.data)
-		. = ALIGN(4);
-		*(.ramcode)
-		_data_end = .;
-	} >RAM AT>NVM
+        *(.eh_frame_hdr)
+        *(.eh_frame)
+        *(.ARM.extab* .gnu.linkonce.armextab.*)
+        *(.gcc_except_table)
+        *(.eh_frame_hdr)
+        *(.eh_frame)
 
-	.u_boot_cmd :
-	{
-		. = ALIGN(4);
-		__u_boot_cmd_start = .;
-		*(.u_boot_cmd)
-		__u_boot_cmd_end = .;
-	} >NVM
+        . = ALIGN(4);
+        KEEP(*(.init))
 
-	.bss :
-	{
-		_bss_start = .;
-		*(.bss)
-		*(COMMON)
-		_bss_end = .;
-	} >RAM
+        . = ALIGN(4);
+        __preinit_array_start = .;
+        KEEP (*(.preinit_array))
+        __preinit_array_end = .;
 
-	.stack :
-	{
-		*(.stack)
-	} >STACK
+        . = ALIGN(4);
+        __init_array_start = .;
+        KEEP (*(SORT(.init_array.*)))
+        KEEP (*(.init_array))
+        __init_array_end = .;
 
-	/DISCARD/ :
-	{
-		*(*)
-	}
+        . = ALIGN(0x4);
+        KEEP (*crtbegin.o(.ctors))
+        KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
+        KEEP (*(SORT(.ctors.*)))
+        KEEP (*crtend.o(.ctors))
+
+        . = ALIGN(4);
+        KEEP(*(.fini))
+        . = ALIGN(4);
+        __fini_array_start = .;
+        KEEP (*(.fini_array))
+        KEEP (*(SORT(.fini_array.*)))
+        __fini_array_end = .;
+
+        KEEP (*crtbegin.o(.dtors))
+        KEEP (*(EXCLUDE_FILE (*crtend.o) .dtors))
+        KEEP (*(SORT(.dtors.*)))
+        KEEP (*crtend.o(.dtors))
+
+        . = ALIGN(8);
+        _etext = .;
+
+    } >FLASH
+
+    /* .ARM.exidx is sorted, so has to go in its own output section. */
+    __exidx_start = .;
+
+    .ARM.exidx :
+    {
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    } >FLASH
+    __exidx_end = .;
+
+    _flash_data = .;
+    .data :
+    {
+        _data_start = .;
+        _data_lma_start = LOADADDR(.data);
+        *(vtable)
+        *(.data*)
+        . = ALIGN(4);
+        *(.ramcode)
+        _data_end = .;
+    } > SRAM AT > FLASH
+
+    .u_boot_cmd :
+    {
+        . = ALIGN(4);
+        __u_boot_cmd_start = .;
+        *(.u_boot_cmd)
+        __u_boot_cmd_end = .;
+    } >FLASH
+
+    .bss :
+    {
+        _bss_start = .;
+        *(.bss*)
+        *(COMMON)
+        _ebss = .;
+        _end = .;
+        _bss_end = .;
+    } > SRAM
+    
+    .stack :
+    {
+        *(.stack)
+    } >STACK
 }
 
-/*
- * Export memory addresses
- */
-_mem_nvm_base		= ORIGIN(NVM);
-_mem_nvm_size		= LENGTH(NVM);
-_mem_ram_base		= ORIGIN(RAM);
-_mem_ram_size		= LENGTH(RAM);
-_mem_ram_buf_base	= ORIGIN(RAM_BUF);
-_mem_ram_buf_size	= LENGTH(RAM_BUF);
-_mem_malloc_base	= ORIGIN(MALLOC);
-_mem_malloc_size	= LENGTH(MALLOC);
-_mem_stack_base		= ORIGIN(STACK);
-_mem_stack_size		= LENGTH(STACK);
-_mem_stack_end		= ORIGIN(STACK) + LENGTH(STACK);
+_mem_nvm_base       = ORIGIN(FLASH);
+_mem_nvm_size       = LENGTH(FLASH);
+_mem_ram_base       = ORIGIN(SRAM);
+_mem_ram_size       = LENGTH(SRAM);
+_mem_ram_buf_base   = ORIGIN(RAM_BUF);
+_mem_ram_buf_size   = LENGTH(RAM_BUF);
+_mem_malloc_base    = ORIGIN(MALLOC);
+_mem_malloc_size    = LENGTH(MALLOC);
+_mem_stack_base     = ORIGIN(STACK);
+_mem_stack_size     = LENGTH(STACK);
+_mem_stack_end      = ORIGIN(STACK) + LENGTH(STACK);

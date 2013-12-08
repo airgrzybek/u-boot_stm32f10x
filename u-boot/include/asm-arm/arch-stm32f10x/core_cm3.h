@@ -87,7 +87,8 @@
 
 #define __CORTEX_M                (0x03)                                                       /*!< Cortex core                    */
 
-#include <stdint.h>                           /* Include standard types */
+//#include <stdint.h>                           /* Include standard types */
+#include <linux/types.h>
 
 #if defined (__ICCARM__)
   #include <intrinsics.h>                     /* IAR Intrinsics   */

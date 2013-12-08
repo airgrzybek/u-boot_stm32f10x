@@ -25,6 +25,10 @@
 #include <asm/arch/lpc18xx_gpio.h>
 #endif
 
+#if defined(CONFIG_)
+#include "asm/arch/system_stm32f10x.h"
+#endif
+
  /*
  * FIXME: move to the appropriate header
  */
@@ -108,6 +112,10 @@ void
 #endif
 	_start(void)
 {
+
+#if defined(CONFIG_SYS_STM32F10X)
+	SystemInit();
+#endif
 	/*
 	 * Depending on the config parameter, enable or disable the WDT.
 	 */

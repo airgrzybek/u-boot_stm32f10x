@@ -30,8 +30,11 @@
  */
 
 #include <common.h>
-
+//#include <dragon.h>
+#include <asm/arch/stm32f10x.h>
 #include <asm/arch/stm32f10x_usart.h>
+#include <asm/arch/stm32f10x_gpio.h>
+#include <asm/arch/stm32f10x_rcc.h>
 
 
 /*
@@ -59,7 +62,7 @@ s32 serial_init(void)
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	USART_InitStructure.USART_BaudRate = CONFIG_BAUDRATE;
+	USART_InitStructure.USART_BaudRate = 115200;
 	USART_InitStructure.USART_WordLength = USART_WordLength_8b;
 	USART_InitStructure.USART_StopBits = USART_StopBits_1;
 	USART_InitStructure.USART_Parity = USART_Parity_No;
@@ -92,6 +95,7 @@ void serial_setbrg(void)
  */
 s32 serial_getc(void)
 {
+	while(USART_GetFlagStatus( USART1, USART_FLAG_RXNE ) == RESET);
 	return USART_ReceiveData(USART1);
 }
 
@@ -103,6 +107,7 @@ void serial_putc(const char c)
 	if (c == '\n')
 		serial_putc('\r');
 
+	while(USART_GetFlagStatus( USART1, USART_FLAG_TXE ) == RESET);
 	USART_SendData(USART1,(uint16_t)c);
 }
 

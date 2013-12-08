@@ -934,7 +934,7 @@ int do_mem_mtest (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 			"\b\b\b\b\b\b\b\b\b\b",
 			pattern, "");
 
-		for (addr=start,val=pattern; addr<end; addr++) {
+		for (addr=start,val=pattern; addr<end; addr+=4) {
 			WATCHDOG_RESET();
 			*addr = val;
 			val  += incr;
@@ -942,7 +942,7 @@ int do_mem_mtest (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 		puts ("Reading...");
 
-		for (addr=start,val=pattern; addr<end; addr++) {
+		for (addr=start,val=pattern; addr<end; addr+=4) {
 			WATCHDOG_RESET();
 			readback = *addr;
 			if (readback != val) {

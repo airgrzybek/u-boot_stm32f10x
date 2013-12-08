@@ -174,12 +174,14 @@ ifdef BUILD_TAG
 CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes \
 	-DBUILD_TAG='"$(BUILD_TAG)"'
 else
-CFLAGS := $(CPPFLAGS) -Wall -Wstrict-prototypes
+CFLAGS := $(CPPFLAGS) -Wall #-Wstrict-prototypes
 endif
 
 CFLAGS += $(call cc-option,-fno-stack-protector)
 CFLAGS += -D STM32F10X_HD
 CFLAGS += -D USE_STDPERIPH_DRIVER
+CFLAGS += -D VECT_TAB_FLASH
+CFLAGS += -D GCC_ARMCM3
 
 # avoid trigraph warnings while parsing pci.h (produced by NIOS gcc-2.9)
 # this option have to be placed behind -Wall -- that's why it is here

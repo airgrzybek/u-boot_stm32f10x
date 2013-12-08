@@ -81,7 +81,7 @@ void RCC_Configuration(void)
  */
 static void clock_setup(void)
 {
-	RCC_Configuration();
+	//RCC_Configuration();
 }
 
 /*

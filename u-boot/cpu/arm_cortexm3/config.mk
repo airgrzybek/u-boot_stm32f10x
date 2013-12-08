@@ -31,5 +31,4 @@ PLATFORM_CPPFLAGS += -DCONFIG_MEM_STACK_LEN=$(CONFIG_MEM_STACK_LEN)
 
 PLATFORM_CPPFLAGS += -I$(TOPDIR)/cpu/$(CPU)
 
-PLATFORM_RELFLAGS += -g2 -mthumb -mcpu=cortex-m3 -fsigned-char -O2 -fno-builtin-puts -fno-common -ffixed-r8 -D STM32F10X_HD -D USE_STDPERIPH_DRIVER
-
+PLATFORM_RELFLAGS += -D GCC_ARMCM3 -g2 -mthumb -mcpu=cortex-m3 -fsigned-char -O0 -fno-builtin-puts -fno-common -ffixed-r8 -D STM32F10X_HD -D USE_STDPERIPH_DRIVER
