@@ -19,10 +19,6 @@
  * MA 02111-1307 USA
  */
 
-/*
- * Board specific code for the STMicroelectronic STM3220G-EVAL board
- */
-
 #include <common.h>
 #include <netdev.h>
 #include <ili932x.h>
@@ -64,6 +60,8 @@ int dram_init(void)
 	int				rv = 0;
 
 	FSMC_Init();
+	//FSMC_PinConfiguration();
+	//FSMC_SramInit();
 
 	/*
 	 * Fill in global info with description of SRAM configuration

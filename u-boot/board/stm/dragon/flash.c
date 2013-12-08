@@ -245,7 +245,7 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 		break; /* =>  4 MB		*/
 
 	case SST39VF1601:
-		DEBUGF("Device SST39VF1601\n\r");
+		DEBUGF("Device SST39VF1601\n");
 		info->flash_id += SST39VF1601;
 		info->sector_count = 512;
 		info->size = 0x00200000; // 2 MB
@@ -266,7 +266,7 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 		info->sector_count = CONFIG_SYS_MAX_FLASH_SECT;
 	}
 
-	DEBUGF("Device sector size %#x, %#x\n\r", addr[0xfe], addr[0xfd]);
+	//DEBUGF("Device sector size %#x, %#x\n", addr[0xfe], addr[0xfd]);
 
 	addr[0] = (FPW) 0x00FF00FF;	/* restore read mode */
 
