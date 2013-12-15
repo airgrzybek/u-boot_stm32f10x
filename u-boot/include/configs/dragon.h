@@ -176,15 +176,35 @@
 #define CONFIG_SYS_FLASH_CFI_AMD_RESET	1
 //#define CONFIG_SYS_FLASH_PROTECTION	0
 #define CONFIG_SYS_FLASH_BANKS 1
-
+#define CONFIG_SYS_FLASH_ERASE_TOUT 1000
+#define CONFIG_SYS_FLASH_WRITE_TOUT 1000
 /*
  * Store env in memory only
  */
 #define CONFIG_ENV_IS_IN_FLASH
+#define CONFIG_ENV_SECT_SIZE    (4 * 1024)
 #define CONFIG_ENV_SIZE			(4 * 1024)
 #define CONFIG_ENV_ADDR			CONFIG_SYS_FLASH_BANK2_BASE
-#define CONFIG_INFERNO			1
+//#define CONFIG_INFERNO			1
+#undef CONFIG_INFERNO
 #define CONFIG_ENV_OVERWRITE		1
+#define CONFIG_CMD_SAVEENV
+#define CONFIG_CMD_FLASH
+
+/*
+ * NAND Flash
+ */
+//#define CONFIG_SYS_MAX_NAND_DEVICE 	1
+//#define CONFIG_SYS_NAND_BASE 		0x70000000
+//#define CONFIG_CMD_NAND
+
+
+/*
+ * MMC
+ */
+//#define CONFIG_CMD_MMC
+//#define CONFIG_GENERIC_MMC
+//#define CONFIG_CMD_FAT
 
 /*
  * Serial console configuration

@@ -47,10 +47,17 @@ int board_init(void)
 {
 	int rv = 0;
 
+	FSMC_Init();
+
 	return 0;
 }
 
+int board_nand_init()
+{
+	int rv = 0;
 
+	return 0;
+}
 
 /*
  * Setup external RAM.
@@ -59,7 +66,8 @@ int dram_init(void)
 {
 	int				rv = 0;
 
-	FSMC_Init();
+	// initialization of ext ram is done in board_init()
+	//FSMC_Init();
 	//FSMC_PinConfiguration();
 	//FSMC_SramInit();
 

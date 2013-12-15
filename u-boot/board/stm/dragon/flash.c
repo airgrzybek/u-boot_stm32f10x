@@ -9,7 +9,23 @@
 #include <common.h>
 #include <asm/arch/stm32f10x.h>
 
-#define SST39VF1601 0x4b
+#define SST39VF1601 0x234b
+
+/* Private define ------------------------------------------------------------*/
+#define NOR_FLASH_START_ADDR       ((uint32_t)0x64000000)
+#define NOR_FLASH_END_ADDR         ((uint32_t)0x64FFFFFF)
+
+/* Delay definition */
+#define BlockErase_Timeout         ((uint32_t)0x00A00000)
+#define ChipErase_Timeout          ((uint32_t)0x30000000)
+#define Program_Timeout            ((uint32_t)0x00001400)
+
+#define ADDR_SHIFT(A)              ((2 * (A)))
+#define NOR_WRITE(Address, Data)   (*(vu16 *)(Address) = (Data))
+
+#define BUFFER_SIZE                0x400
+#define WRITE_READ_ADDR            0x8000
+
 
 #if defined(CONFIG_ENV_IS_IN_FLASH)
 # ifndef  CONFIG_ENV_ADDR
@@ -51,12 +67,23 @@
 
 flash_info_t	flash_info[CONFIG_SYS_MAX_FLASH_BANKS]; /* info for FLASH chips	*/
 
+/* NOR Status */
+typedef enum
+{
+  NOR_SUCCESS = 0,
+  NOR_ONGOING,
+  NOR_ERROR,
+  NOR_TIMEOUT
+}
+NOR_Status;
+
 /*-----------------------------------------------------------------------
  * Functions
  */
 static ulong flash_get_size (FPW * addr, flash_info_t *info);
-static int write_data (flash_info_t *info, uchar *dest, uchar data);
+static int write_data (flash_info_t *info, ulong dest, FPW data);
 static void flash_get_offsets (ulong base, flash_info_t *info);
+static NOR_Status FSMC_NOR_GetStatus(uint32_t Timeout);
 
 #define BS(b)     (b)
 #define BYTEME(x) ((x) & 0xFF)
@@ -126,7 +153,21 @@ unsigned long flash_init (void)
  */
 static void flash_get_offsets (ulong base, flash_info_t *info)
 {
-	return;
+	int i = 0;
+
+	if (info->flash_id == FLASH_UNKNOWN)
+	{
+		return;
+	}
+
+	if ((info->flash_id & FLASH_VENDMASK) == FLASH_MAN_SST)
+	{
+		for (i = 0; i < info->sector_count; i++)
+		{
+			info->start[i] = base + (i * 0x1000); // 4kB sector
+			info->protect[i] = 0;
+		}
+	}
 }
 
 /*-----------------------------------------------------------------------
@@ -198,11 +239,12 @@ void flash_print_info  (flash_info_t *info)
  */
 static ulong flash_get_size (FPW * addr, flash_info_t *info)
 {
-	vu_char manuf = 0, device;
+	FPW manuf = 0, device = 0;
+	uint32_t size = 0, sectors = 0;
 
-	addr[0x5555] = (FPW) 0x00AA00AA;
-	addr[0x2AAA] = (FPW) 0x00550055;
-	addr[0x5555] = (FPW) 0x00900090;
+	addr[0x5555] = (FPW) 0x00AA;
+	addr[0x2AAA] = (FPW) 0x0055;
+	addr[0x5555] = (FPW) 0x0090;
 
 	manuf = addr[0];
 	DEBUGF("Manuf. ID @ 0x%08lx: 0x%08x\n", (ulong )addr, manuf);
@@ -228,13 +270,23 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 		info->flash_id = FLASH_UNKNOWN;
 		info->sector_count = 0;
 		info->size = 0;
-		addr[0] = BS(0xFF); /* restore read mode, (yes, BS is a NOP) */
+		addr[0] = BS(0xF0); /* restore read mode, (yes, BS is a NOP) */
 		return 0; /* no or unknown flash	*/
 	}
 
-	device = addr[1]; /* device ID		*/
+	device = addr[0x1]; /* device ID		*/
+	DEBUGF("Device ID @ 0x%08lx: 0x%08x\n", (ulong )(&addr[0x1]), device);
 
-	DEBUGF("Device ID @ 0x%08lx: 0x%08x\n", (ulong )(&addr[1]), device);
+	addr[0] = (FPW) 0x00F0;	/* restore read mode */
+
+	addr[0x5555] = (FPW) 0x00AA;
+	addr[0x2AAA] = (FPW) 0x0055;
+	addr[0x5555] = (FPW) 0x0098;
+
+	size = 1 << addr[0x27];
+	DEBUGF("size=%#x\n",size);
+	sectors = (addr[0x2e] << 8) | addr[0x2d];
+	DEBUGF("sectors=%#x\n",sectors);
 
 	switch (device)
 	{
@@ -247,14 +299,14 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 	case SST39VF1601:
 		DEBUGF("Device SST39VF1601\n");
 		info->flash_id += SST39VF1601;
-		info->sector_count = 512;
-		info->size = 0x00200000; // 2 MB
+		info->sector_count = sectors + 1;
+		info->size = size; // 2 MB
 		break;
 
 
 	default:
 		info->flash_id = FLASH_UNKNOWN;
-		addr[0] = BS(0xFF); /* restore read mode (yes, a NOP) */
+		addr[0] = BS(0xF0); /* restore read mode (yes, a NOP) */
 		return 0; /* => no or unknown flash */
 
 	}
@@ -268,7 +320,7 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 
 	//DEBUGF("Device sector size %#x, %#x\n", addr[0xfe], addr[0xfd]);
 
-	addr[0] = (FPW) 0x00FF00FF;	/* restore read mode */
+	addr[0] = (FPW) 0x00F0;	/* restore read mode */
 
 	return (info->size);
 }
@@ -279,6 +331,76 @@ static ulong flash_get_size (FPW * addr, flash_info_t *info)
 
 int	flash_erase (flash_info_t *info, int s_first, int s_last)
 {
+	int flag, prot, sect;
+	ulong start, now, last;
+	int rcode = 0;
+
+	if ((s_first < 0) || (s_first > s_last))
+	{
+		if (info->flash_id == FLASH_UNKNOWN)
+		{
+			printf("- missing\n");
+		}
+		else
+		{
+			printf("- no sectors to erase\n");
+		}
+		return 1;
+	}
+
+	// protected sectors
+	prot = 0;
+	for (sect = s_first; sect <= s_last; ++sect)
+	{
+		if (info->protect[sect])
+		{
+			prot++;
+		}
+	}
+
+	if (prot)
+	{
+		printf("- Warning: %d protected sectors will not be erased!\n", prot);
+	}
+	else
+	{
+		printf("\n");
+	}
+
+	/* Disable interrupts which might cause a timeout here */
+	flag = disable_interrupts();
+
+	/* Start erase on unprotected sectors */
+	for (sect = s_first; sect <= s_last; sect++)
+	{
+		if (info->protect[sect] == 0)
+		{ /* not protected */
+			FPWV *base = (FPWV *) (info->start[0]);
+			FPWV *addr = (FPWV *) (info->start[sect]);
+			FPW status;
+
+			printf("Erasing sector %2d ... ", sect);
+
+			//flash_unprotect_sectors(addr);
+
+			base[0x5555] = 0x00AA;/* clear status register */
+			base[0x2AAA] = 0x0055;/* erase setup */
+			base[0x5555] = 0x0080;/* erase confirm */
+			base[0x5555] = 0x00AA;
+			base[0x2AAA] = 0x0055;
+			*addr = 0x0030;
+
+			if (NOR_SUCCESS != FSMC_NOR_GetStatus(BlockErase_Timeout ))
+			{
+				addr[0] = (FPW) 0x00F0;	/* restore read mode */
+				printf("Timeout.");
+				return 1;
+			}
+
+			addr[0] = (FPW) 0x00F0;	/* restore read mode */
+			printf(" done\n");
+		}
+	}
 	return 0;
 }
 
@@ -294,6 +416,32 @@ int	flash_erase (flash_info_t *info, int s_first, int s_last)
 
 int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
 {
+	FPW *wp = (FPW *) addr;
+	int rc = 0;
+	FPW data = 0;
+
+	if (info->flash_id == FLASH_UNKNOWN)
+	{
+		return 4;
+	}
+
+	while (cnt > 0)
+	{
+		data = 0;
+
+		data = *src++;
+		data |= *src++ << 8;
+
+
+		if ((rc = write_data(info, wp, data)) != 0)
+		{
+			return rc;
+		}
+		wp++;
+		//src++;
+		cnt-=2;
+	}
+
 	return cnt;
 }
 
@@ -303,8 +451,112 @@ int write_buff (flash_info_t *info, uchar *src, ulong addr, ulong cnt)
  * 1 - write timeout
  * 2 - Flash not erased
  */
-static int write_data (flash_info_t *info, uchar *dest, uchar data)
+static int write_data (flash_info_t *info, ulong dest, FPW data)
 {
+	FPWV *addr = (FPWV *) dest;
+	FPWV * base = info->start[0];
+	ulong status;
+	ulong start;
+	int flag;
+
+	/* Check if Flash is (sufficiently) erased */
+	if ((*addr & data) != data)
+	{
+		printf ("not erased at %08lx (%x)\n", (ulong) addr, *addr);
+		return 2;
+	}
+	/* Disable interrupts which might cause a timeout here */
+	flag = disable_interrupts();
+
+	base[0x5555] = 0x00AA;
+	base[0x2AAA] = 0x0055;
+	base[0x5555] = 0x00A0;
+	*addr = data;
+
+	/* re-enable interrupts if necessary */
+	if (flag)
+	{
+		enable_interrupts();
+	}
+
+	if (NOR_SUCCESS != FSMC_NOR_GetStatus(Program_Timeout ))
+	{
+		addr[0] = (FPW) 0x00F0;	/* restore read mode */
+		return 1;
+	}
+
+	*addr = (FPW) 0x00F0; /* restore read mode */
 
 	return 0;
+}
+
+
+/******************************************************************************
+* Function Name  : FSMC_NOR_GetStatus
+* Description    : Returns the NOR operation status.
+* Input          : - Timeout: NOR progamming Timeout
+* Output         : None
+* Return         : NOR_Status:The returned value can be: NOR_SUCCESS, NOR_ERROR
+*                  or NOR_TIMEOUT
+* Attention		 : None
+*******************************************************************************/
+NOR_Status FSMC_NOR_GetStatus(uint32_t Timeout)
+{
+  uint16_t val1 = 0x00, val2 = 0x00;
+  NOR_Status status = NOR_ONGOING;
+  uint32_t timeout = Timeout;
+
+  /* Poll on NOR memory Ready/Busy signal ------------------------------------*/
+  while((GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_6) != RESET) && (timeout > 0))
+  {
+    timeout--;
+  }
+
+  timeout = Timeout;
+
+  while((GPIO_ReadInputDataBit(GPIOD, GPIO_Pin_6) == RESET) && (timeout > 0))
+  {
+    timeout--;
+  }
+
+  /* Get the NOR memory operation status -------------------------------------*/
+  while((Timeout != 0x00) && (status != NOR_SUCCESS))
+  {
+    Timeout--;
+
+	  /* Read DQ6 and DQ5 */
+    val1 = *(FPWV *)(NOR_FLASH_START_ADDR);
+    val2 = *(FPWV *)(NOR_FLASH_START_ADDR);
+
+    /* If DQ6 did not toggle between the two reads then return NOR_Success */
+    if((val1 & 0x0040) == (val2 & 0x0040))
+    {
+      return NOR_SUCCESS;
+    }
+
+    if((val1 & 0x0020) != 0x0020)
+    {
+      status = NOR_ONGOING;
+    }
+
+    val1 = *(FPWV *)(NOR_FLASH_START_ADDR);
+    val2 = *(FPWV *)(NOR_FLASH_START_ADDR);
+
+    if((val1 & 0x0040) == (val2 & 0x0040))
+    {
+      return NOR_SUCCESS;
+    }
+    else if((val1 & 0x0020) == 0x0020)
+    {
+      return NOR_ERROR;
+    }
+  }
+
+  if(Timeout == 0x00)
+  {
+    status = NOR_TIMEOUT;
+  }
+
+  /* Return the operation status */
+  return (status);
 }
