@@ -39,7 +39,8 @@
 #error FS_BLOCK_SIZE != SECTOR_SIZE - This code needs to be fixed!
 #endif
 
-#define MAX_CLUSTSIZE	65536
+//#define MAX_CLUSTSIZE	65536
+#define MAX_CLUSTSIZE	255
 #define DIRENTSPERBLOCK	(FS_BLOCK_SIZE/sizeof(dir_entry))
 #define DIRENTSPERCLUST	((mydata->clust_size*SECTOR_SIZE)/sizeof(dir_entry))
 

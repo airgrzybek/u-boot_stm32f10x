@@ -32,6 +32,8 @@ COBJS-$(CONFIG_OMAP3_MMC) += omap3_mmc.o
 COBJS-$(CONFIG_FSL_ESDHC) += fsl_esdhc.o
 COBJS-$(CONFIG_MXC_MMC) += mxcmmc.o
 COBJS-$(CONFIG_PXA_MMC) += pxa_mmc.o
+COBJS-$(CONFIG_STM32F10X_MMC) += stm32f10x_mmc.o
+COBJS-$(CONFIG_STM32F10X_MMC) += stm32f10x_sdcard.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

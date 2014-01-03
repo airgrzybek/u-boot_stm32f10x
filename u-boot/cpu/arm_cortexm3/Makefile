@@ -29,7 +29,12 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)lib$(CPU).a
 
+ifeq ($(SOC),stm32f10x)
+START 	:= start_stm32f10x.o
+else
 START	:= start.o
+endif
+
 COBJS	:= cpu.o cmd_cptf.o timer.o
 
 SRCS	:= $(START:.o=.c) $(COBJS:.o=.c)

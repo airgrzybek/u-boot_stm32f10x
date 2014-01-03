@@ -28,6 +28,7 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+static void NVIC_Configuration(void);
 
 /*
  * Dump pertinent info to the console.
@@ -46,8 +47,22 @@ int checkboard(void)
 int board_init(void)
 {
 	int rv = 0;
+	unsigned long temp;
 
 	FSMC_Init();
+
+    NVIC_SetVectorTable(NVIC_VectTab_FLASH, 0x0);
+
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+
+    /* Configure HCLK clock as SysTick clock source. */
+    SysTick_CLKSourceConfig(SysTick_CLKSource_HCLK);
+
+    __enable_irq();
+
+    NVIC_Configuration();
+
+
 
 	return 0;
 }
@@ -80,3 +95,62 @@ int dram_init(void)
 	return rv;
 }
 
+void NVIC_Configuration(void)
+{
+	EXTI_InitTypeDef EXTI_InitStructure;
+	NVIC_InitTypeDef NVIC_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+
+	/* Configure the NVIC Preemption Priority Bits */
+	//NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOG, &GPIO_InitStructure);
+
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	/* Connect PEN EXTI Line to Key Button GPIO Pin */
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource8);
+
+	/* Configure PEN EXTI Line to generate an interrupt on falling edge */
+	EXTI_InitStructure.EXTI_Line = EXTI_Line8;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	// Connect PEN EXTI Line to Key Button GPIO Pin
+	GPIO_EXTILineConfig(GPIO_PortSourceGPIOG, GPIO_PinSource7);
+
+	// Configure PEN EXTI Line to generate an interrupt on falling edge
+	EXTI_InitStructure.EXTI_Line = EXTI_Line7;
+	EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
+	EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+	EXTI_Init(&EXTI_InitStructure);
+
+	NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 5;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+
+/*	NVIC_InitStructure.NVIC_IRQChannel = DMA2_Channel4_5_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);*/
+
+	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
+
+	NVIC_InitStructure.NVIC_IRQChannel = SDIO_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_Init(&NVIC_InitStructure);
+	EXTI_GenerateSWInterrupt(EXTI_Line7);
+}

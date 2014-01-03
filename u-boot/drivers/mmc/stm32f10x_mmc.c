@@ -20,8 +20,6 @@ static unsigned long mmc_read_block(int dev, unsigned long start,
 static unsigned long mmc_write_block(int dev, unsigned long start,
         lbaint_t blkcnt, const void *buffer);
 
-static void InterruptsSetup(void);
-
 block_dev_desc_t *mmc_get_dev(int dev)
 {
 	return &mmc_blkdev;
@@ -78,7 +76,6 @@ int mmc_legacy_init(int verbose)
 
 		init_part(&mmc_blkdev);
 
-		InterruptsSetup();
 	}
 
 
@@ -108,8 +105,6 @@ unsigned long mmc_read_block(int dev, unsigned long start,
 	{
 		status = SD_ReadMultiBlocks(start << 9,(u32 *)(&buffer[0]),mmc_blkdev.blksz,blkcnt);
 	}
-
-
 
 	printf("SD_ReadMultiBlocks returns status = %d\n",status);
 
@@ -147,62 +142,4 @@ static unsigned long mmc_write_block(int dev, unsigned long start,
 	}
 
 	return retVal;
-}
-
-static void InterruptsSetup(void)
-{
-    EXTI_InitTypeDef  EXTI_InitStructure;
-    NVIC_InitTypeDef NVIC_InitStructure;
-    GPIO_InitTypeDef   GPIO_InitStructure;
-
-    /* Configure PA.00 pin as input floating */
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &GPIO_InitStructure);
-
-    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOG, &GPIO_InitStructure);
-
-    /* Connect PEN EXTI Line to Key Button GPIO Pin */
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource8);
-
-    /* Configure PEN EXTI Line to generate an interrupt on falling edge */
-    EXTI_InitStructure.EXTI_Line = EXTI_Line8;
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTI_InitStructure);
-
-    // Connect PEN EXTI Line to Key Button GPIO Pin
-    GPIO_EXTILineConfig(GPIO_PortSourceGPIOG, GPIO_PinSource7 );
-
-    // Configure PEN EXTI Line to generate an interrupt on falling edge
-    EXTI_InitStructure.EXTI_Line = EXTI_Line7;
-    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling;
-    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTI_InitStructure);
-
-    // interrupt init
-    NVIC_InitStructure.NVIC_IRQChannel = EXTI9_5_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 5;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 5;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-
-    /* Configure one bit for preemption priority */
-    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_1);
-
-    /* Enable the RTC Interrupt */
-    NVIC_InitStructure.NVIC_IRQChannel = RTC_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 1;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStructure);
-    /* Generate software interrupt: simulate a falling edge applied on PEN EXTI line */
-    //EXTI_GenerateSWInterrupt(EXTI_Line8);
-    //EXTI_GenerateSWInterrupt(EXTI_Line7);
 }

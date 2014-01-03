@@ -168,8 +168,12 @@ include $(TOPDIR)/config.mk
 
 #########################################################################
 # U-Boot objects....order is important (i.e. start must be first)
-
+ifeq ($(SOC),stm32f10x)
+OBJS  = cpu/$(CPU)/start_stm32f10x.o
+else
 OBJS  = cpu/$(CPU)/start.o
+endif
+
 ifeq ($(CPU),i386)
 OBJS += cpu/$(CPU)/start16.o
 OBJS += cpu/$(CPU)/resetvec.o

@@ -30,7 +30,7 @@
 /*
  * Disable debug messages
  */
-#undef DEBUG
+//#define DEBUG
 
 /*
  * This is an ARM Cortex-M4 CPU core. Also use the common Cortex-M3 code.
@@ -90,7 +90,7 @@
 #undef CONFIG_HW_WATCHDOG
 
 /*
- * No interrupts
+ * Enable interrupts
  */
 #undef CONFIG_USE_IRQ
 
@@ -202,9 +202,16 @@
 /*
  * MMC
  */
-//#define CONFIG_CMD_MMC
+#define CONFIG_STM32F10X_MMC
+#define CONFIG_CMD_MMC
+#define CONFIG_MMC
+#define CONFIG_DOS_PARTITION
+//#define CONFIG_ISO_PARTITION
+//#define CONFIG_MAC_PARTITION
+//#define CONFIG_EFI_PARTITION
+//#define CONFIG_AMIGA_PARTITION
 //#define CONFIG_GENERIC_MMC
-//#define CONFIG_CMD_FAT
+#define CONFIG_CMD_FAT
 
 /*
  * Serial console configuration
@@ -288,11 +295,10 @@
 #undef CONFIG_CMD_NFS
 #undef CONFIG_CMD_SOURCE
 #undef CONFIG_CMD_XIMG
-
 /*
  * To save memory disable long help
  */
-#undef CONFIG_SYS_LONGHELP
+#define CONFIG_SYS_LONGHELP
 
 /*
  * Max number of command args
@@ -304,7 +310,7 @@
  */
 #define CONFIG_BOOTDELAY		3
 #define CONFIG_ZERO_BOOTDELAY_CHECK
-#define CONFIG_HOSTNAME			stm3240g-eval
+#define CONFIG_HOSTNAME			stm32f10x_dragon
 #define CONFIG_BOOTARGS			"stm32_platform=dragon "\
 					"console=ttyS2,115200 panic=10"
 #define CONFIG_BOOTCOMMAND		"run flashboot"

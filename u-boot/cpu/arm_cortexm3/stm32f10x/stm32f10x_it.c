@@ -22,6 +22,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "common.h"
 
 /** @addtogroup Template_Project
   * @{
@@ -123,6 +124,32 @@ void DebugMon_Handler(void)
 {
 }*/
 
+
+void DMA2_Channel4_5_IRQHandler(void)
+{
+	SD_ProcessIRQSrc();
+}
+
+void EXTI9_5_IRQHandler(void)
+{
+
+    //memset(text,0x00,20);
+
+    if(EXTI_GetITStatus(EXTI_Line8) != RESET)
+    {
+    	EXTI_ClearITPendingBit(EXTI_Line8);
+    }
+    else if(EXTI_GetITStatus(EXTI_Line7) != RESET)
+    {
+    	EXTI_ClearITPendingBit(EXTI_Line7);
+    }
+}
+
+void SDIO_IRQHandler(void)
+{
+  /* Process All SDIO Interrupt Sources */
+  SD_ProcessIRQSrc();
+}
 /**
   * @}
   */
