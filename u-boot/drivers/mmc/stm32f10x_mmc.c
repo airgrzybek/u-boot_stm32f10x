@@ -3,14 +3,13 @@
 #include "stm32f10x_sdcard.h"
 #include <part.h>
 
-/*
-#define printf
-#ifdef printf
-#define printf(fmt, args...) printf(fmt, ##args)
+
+#ifdef DEBUG
+#define debug(fmt, args...) printf(fmt, ##args)
 #else
-#define printf(...) do { } while(0)
+#define debug(...) do { } while(0)
 #endif
-*/
+
 
 static block_dev_desc_t mmc_blkdev;
 
@@ -30,7 +29,7 @@ int mmc_legacy_init(int verbose)
 	SD_CardInfo cardInfo;
 	SD_Error status = SD_Init();
 
-	printf("mmc_legacy_init status = %d\n",status);
+	debug("mmc_legacy_init status = %d\n",status);
 
 	if (status == SD_OK)
 	{
@@ -58,14 +57,17 @@ int mmc_legacy_init(int verbose)
 
 	if(SD_OK != status)
 	{
-		printf("SD_Init() error!\n");
+		debug("SD_Init() error!\n");
 	}
 	else
 	{
-		printf("Device info:\n"
+		debug("Device info:\n"
 				"block_size = %u\n"
 				"capacity = %u\n", cardInfo.CardBlockSize, cardInfo.CardCapacity);
 
+		//mmc_blkdev.lba = (cardInfo.SD_csd.DeviceSize + 1) ;
+		//mmc_blkdev.lba *= (1 << (cardInfo.SD_csd.DeviceSizeMul + 2));
+		mmc_blkdev.lba = cardInfo.CardCapacity / cardInfo.CardBlockSize;
 		mmc_blkdev.if_type = IF_TYPE_MMC;
 		mmc_blkdev.part_type = PART_TYPE_DOS;
 		mmc_blkdev.blksz = cardInfo.CardBlockSize;
@@ -73,6 +75,18 @@ int mmc_legacy_init(int verbose)
 		mmc_blkdev.dev = 0;
 		mmc_blkdev.block_read = &mmc_read_block;
 		mmc_blkdev.block_write = &mmc_write_block;
+
+		//*(u8*) &mmc_blkdev.vendor = cardInfo.SD_cid.ManufacturerID;
+		//*(u8*) &mmc_blkdev.product = cardInfo.SD_cid.ProdName1;
+		//*(u8*) &mmc_blkdev.revision = cardInfo.SD_cid.ProdRev;
+
+		sprintf((char *) mmc_blkdev.vendor, "Man %02x%04x Snr %08lx",
+		        cardInfo.SD_cid.ManufacturerID, cardInfo.SD_cid.OEM_AppliID,
+		        cardInfo.SD_cid.ProdSN);
+		sprintf((char *) mmc_blkdev.product, "%c%c", cardInfo.SD_cid.ProdName1,
+				cardInfo.SD_cid.ProdName2);
+		sprintf((char *) mmc_blkdev.revision, "%x %x",
+		        cardInfo.SD_cid.ProdRev >> 4, cardInfo.SD_cid.ProdRev & 0x0f);
 
 		init_part(&mmc_blkdev);
 
@@ -84,18 +98,13 @@ int mmc_legacy_init(int verbose)
 	return 0;
 }
 
-/*void  init_part (block_dev_desc_t *dev_desc)
-{
-
-}*/
-
 unsigned long mmc_read_block(int dev, unsigned long start,
         lbaint_t blkcnt, void *buffer)
 {
 	SD_Error status;
 	unsigned long retVal = 0;
 
-	printf("mmc_read_block dev = %d start = %d size = %d\n",dev,start,blkcnt);
+	debug("mmc_read_block dev = %d start = %d size = %d\n",dev,start,blkcnt);
 
 	if(1 == blkcnt)
 	{
@@ -106,11 +115,11 @@ unsigned long mmc_read_block(int dev, unsigned long start,
 		status = SD_ReadMultiBlocks(start << 9,(u32 *)(&buffer[0]),mmc_blkdev.blksz,blkcnt);
 	}
 
-	printf("SD_ReadMultiBlocks returns status = %d\n",status);
+	debug("SD_ReadMultiBlocks returns status = %d\n",status);
 
 	if(SD_OK != status)
 	{
-		printf("mmc_read_block read error!\n");
+		debug("mmc_read_block read error!\n");
 	}
 	else
 	{
@@ -126,15 +135,15 @@ static unsigned long mmc_write_block(int dev, unsigned long start,
 	SD_Error status;
 	unsigned long retVal = 0;
 
-	printf("mmc_write_block dev = %d start = %d size = %d\n",dev,start,blkcnt);
+	debug("mmc_write_block dev = %d start = %d size = %d\n",dev,start,blkcnt);
 
 	status = SD_WriteMultiBlocks(start,buffer,mmc_blkdev.blksz,blkcnt);
 
-	printf("SD_ReadMultiBlocks returns status = %d\n",status);
+	debug("SD_ReadMultiBlocks returns status = %d\n",status);
 
 	if(SD_OK != status)
 	{
-		printf("mmc_write_block read error!\n");
+		debug("mmc_write_block read error!\n");
 	}
 	else
 	{
