@@ -263,6 +263,7 @@ int saveenv(void)
 	int	len, rc;
 	ulong	end_addr;
 	ulong	flash_sect_addr;
+	int sector = CONFIG_ENV_SECT_SIZE;
 #if defined(CONFIG_ENV_SECT_SIZE) && (CONFIG_ENV_SECT_SIZE > CONFIG_ENV_SIZE)
 	ulong	flash_offset;
 	uchar	env_buffer[CONFIG_ENV_SECT_SIZE];
@@ -302,8 +303,7 @@ int saveenv(void)
 	end_addr = flash_sect_addr + 0x20000 - 1;
 #endif
 
-	debug ("Protect off %08lX ... %08lX\n",
-		(ulong)flash_sect_addr, end_addr);
+	debug ("Protect off %08lX ... %08lX\n", flash_sect_addr, end_addr);
 
 	if (flash_sect_protect (0, flash_sect_addr, end_addr))
 		return 1;

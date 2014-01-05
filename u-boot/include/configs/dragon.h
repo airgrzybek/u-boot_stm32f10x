@@ -90,9 +90,11 @@
 #undef CONFIG_HW_WATCHDOG
 
 /*
- * Enable interrupts
+ * Disable interrupts
  */
-#undef CONFIG_USE_IRQ
+#undef CONFIG_USE_IRQ // we use stm32f10x specific interrupt implementation
+
+
 
 /*
  * Memory layout configuration
@@ -187,6 +189,7 @@
 #define CONFIG_ENV_ADDR			CONFIG_SYS_FLASH_BANK2_BASE
 //#define CONFIG_INFERNO			1
 #undef CONFIG_INFERNO
+//#define ENV_IS_EMBEDDED
 #define CONFIG_ENV_OVERWRITE		1
 #define CONFIG_CMD_SAVEENV
 #define CONFIG_CMD_FLASH
@@ -194,10 +197,15 @@
 /*
  * NAND Flash
  */
-//#define CONFIG_SYS_MAX_NAND_DEVICE 	1
-//#define CONFIG_SYS_NAND_BASE 		0x70000000
-//#define CONFIG_CMD_NAND
-
+/*
+#define CONFIG_SYS_MAX_NAND_DEVICE 	1
+#define CONFIG_SYS_NAND_BASE 		0x70000000
+#define CONFIG_CMD_NAND
+#define CONFIG_SYS_NAND_MASK_CLE	(u32)(1 << 16) // Pin A17
+#define CONFIG_SYS_NAND_MASK_ALE	(u32)(1 << 17) // Pin A17
+#define CONFIG_SYS_NAND_READY_PIN
+#define CONFIG_NAND_STM32F10X
+*/
 
 /*
  * MMC
@@ -206,11 +214,6 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_MMC
 #define CONFIG_DOS_PARTITION
-//#define CONFIG_ISO_PARTITION
-//#define CONFIG_MAC_PARTITION
-//#define CONFIG_EFI_PARTITION
-//#define CONFIG_AMIGA_PARTITION
-//#define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_FAT
 
 /*

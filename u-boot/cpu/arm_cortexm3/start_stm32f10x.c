@@ -472,10 +472,28 @@ static void __attribute__((used)) dump_ctx(unsigned int *ctx)
 
 void Default_Handler(void)
 {
-  /* Go into an infinite loop. */
-  while (1)
-  {
-  }
+	/*
+	 * Dump the registers
+	 */
+	asm("mov r0, sp; bl dump_ctx");
+
+	/* Go into an infinite loop. */
+	while (1)
+	{
+	}
+}
+
+void HardFault_Handler(void)
+{
+	/*
+	 * Dump the registers
+	 */
+	asm("mov r0, sp; bl dump_ctx");
+
+	/* Go into an infinite loop. */
+	while (1)
+	{
+	}
 }
 
 /**

@@ -51,6 +51,7 @@ COBJS-$(CONFIG_NAND_SPEAR) += spr_nand.o
 COBJS-$(CONFIG_NAND_OMAP_GPMC) += omap_gpmc.o
 COBJS-$(CONFIG_NAND_PLAT) += nand_plat.o
 COBJS-$(CONFIG_NAND_FSL_NFC) += fsl_nfc.o
+COBJS-$(CONFIG_NAND_STM32F10X) += stm32f10x_nand.o
 endif
 
 COBJS	:= $(COBJS-y)

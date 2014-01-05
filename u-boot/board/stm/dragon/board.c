@@ -67,13 +67,6 @@ int board_init(void)
 	return 0;
 }
 
-int board_nand_init()
-{
-	int rv = 0;
-
-	return 0;
-}
-
 /*
  * Setup external RAM.
  */

@@ -92,9 +92,6 @@ int mmc_legacy_init(int verbose)
 
 	}
 
-
-
-
 	return 0;
 }
 
